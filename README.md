@@ -8,6 +8,7 @@
 - `track2_differential.R` — DESeq2 analysis in RStudio
 - `track3_binding_site_integration.txt` — bedtools intersect pipeline
 
+'''
 ## File Structure Expected
 assignment2/
 ├── data/
@@ -25,6 +26,7 @@ assignment2/
 ├── track1_results_variant/
 ├── track2_results/
 └── track3_results/
+'''
 
 ## Software Used
 - BWA v0.7.19
