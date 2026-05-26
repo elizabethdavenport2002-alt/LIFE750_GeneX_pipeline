@@ -1,0 +1,93 @@
+# track1_variant_calling
+# BWA alignment and freebayes variant calling 
+
+cd assignment2
+
+bwa index data/GeneX_reference.fa
+
+bwa mem -t 2 \
+  -R '@RG\tID:normal\tSM:normal\tPL:ILLUMINA\tLB:WGS\tPU:HiSeq' \
+  data/GeneX_reference.fa \
+  data/normal_GeneX_R1.fastq \
+  data/normal_GeneX_R2.fastq \
+  | samtools view -b -@ 2 \
+  | samtools sort -@ 2 -o track1_results_variant/normal_sorted.bam -
+
+samtools index track1_results_variant/normal_sorted.bam
+
+
+bwa mem -t 2 \
+  -R '@RG\tID:mutant\tSM:mutant\tPL:ILLUMINA\tLB:WGS\tPU:HiSeq' \
+  data/GeneX_reference.fa \
+  data/mutant_GeneX_R1.fastq \
+  data/mutant_GeneX_R2.fastq \
+  | samtools view -b -@ 2 \
+  | samtools sort -@ 2 -o track1_results_variant/mutant_sorted.bam -
+
+samtools index track1_results_variant/mutant_sorted.bam
+
+# Normal variant calling 
+freebayes --ploidy 1 \
+  --min-mapping-quality 30 \
+  --min-base-quality 25 \
+  --fasta-reference data/GeneX_reference.fa \
+  track1_results_variant/normal_sorted.bam \
+  > track1_results_variant/normal_raw.vcf
+
+# Mutant
+freebayes --ploidy 1 \
+  --min-mapping-quality 30 \
+  --min-base-quality 25 \
+  --fasta-reference data/GeneX_reference.fa \
+  track1_results_variant/mutant_sorted.bam \
+  > track1_results_variant/mutant_raw.vcf
+
+# filter variants for quality
+
+bcftools view -e 'QUAL < 10 || INFO/DP < 10 || AF = 0' \
+  -O v -o track1_results_variant/normal_filtered.vcf \
+  track1_results_variant/normal_raw.vcf
+
+bcftools view -e 'QUAL < 10 || INFO/DP < 10 || AF = 0' \
+  -O v -o track1_results_variant/mutant_filtered.vcf \
+  track1_results_variant/mutant_raw.vcf
+
+
+grep -v "^#" track1_results_variant/normal_filtered.vcf # empty as expected 
+grep -v "^#" track1_results_variant/mutant_filtered.vcf # 3 
+
+# see what the GeneX annotation looks like
+cat data/GeneX.gff3
+
+# Check overlap with annotated features
+grep -v "^#" data/GeneX.gff3 | awk '$4 <= 228 && $5 >= 228'   # position 228
+grep -v "^#" data/GeneX.gff3 | awk '$4 <= 293 && $5 >= 293'   # position 293
+grep -v "^#" data/GeneX.gff3 | awk '$4 <= 611 && $5 >= 611'   # position 611
+# 1- 720 
+# all inside CDS 
+
+# Extract reference for codons 
+samtools faidx data/GeneX_reference.fa
+
+# Get the sequence around each SNP
+samtools faidx data/GeneX_reference.fa GeneX_reference:220-236   # around pos 228
+samtools faidx data/GeneX_reference.fa GeneX_reference:285-301   # around pos 293
+samtools faidx data/GeneX_reference.fa GeneX_reference:603-619   # around pos 611
+
+# Codon mutation effects 
+
+bcftools csq \
+  -f data/GeneX_reference.fa \
+  -g data/GeneX.gff3 \
+  track1_results_variant/mutant_filtered.vcf.gz \
+  -o ~/mutant_annotated.vcf
+
+# View annotations
+grep -v "^#" ~/mutant_annotated.vcf | grep "BCSQ"
+
+bgzip track1_results_variant/mutant_filtered.vcf
+
+bcftools index track1_results_variant/mutant_filtered.vcf.gz
+
+
+

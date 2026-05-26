@@ -1,0 +1,34 @@
+#track3_binding_site_intergration 
+
+# extract gene coordinates from annotation
+
+# Get significant gene IDs 
+# Skips header, extracts gene ID column, removes quotes
+tail -n +2 track2_results/DESeq2_significant.csv \
+  | cut -d',' -f1 \
+  | tr -d '"' \
+  > track3_results/sig_gene_ids.txt
+
+# Extract genes from genes.gff3 and make a BED 
+# extend upstream to find potential promoters
+grep -f track3_results/sig_gene_ids.txt data/genes.gff3 \
+  | awk '$3=="gene"' \
+  | awk 'BEGIN{OFS="\t"} {
+      start = ($7=="+") ? $4-2001 : $4-1;
+      end   = ($7=="+") ? $5      : $5+2000;
+      if (start < 0) start=0;
+      print $1, start, end, $9
+    }' \
+  > track3_results/sig_genes_with_promoters.bed
+
+# Intersect with Gene X binding sites
+bedtools intersect \
+  -a track3_results/sig_genes_with_promoters.bed \
+  -b data/gene_x_binding_sites.bed \
+  -wa -wb \
+  > track3_results/DE_genes_with_GeneX_binding.txt
+
+# Count overlapping genes and view results
+wc -l track3_results/DE_genes_with_GeneX_binding.txt
+cat track3_results/DE_genes_with_GeneX_binding.txt
+

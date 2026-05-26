@@ -1,0 +1,44 @@
+# set_up_conda_enviroment
+
+ Use wget to download Miniforge for Linux (x86_64)
+wget https://github.com/conda-forge/miniforge/releases/download/26.1.0-0/Miniforge3-26.1.0-0-Linux-x86_64.sh
+
+# Run the downloaded installer script
+bash Miniforge3-26.1.0-0-Linux-x86_64.sh
+
+# Remove the installer script once installation is complete
+rm -f Miniforge3-26.1.0-0-Linux-x86_64.sh
+
+# Create a new conda environment called 'vc' with python 3.10
+conda create -n vc python=3.10 -y
+
+# Activate the environment
+conda activate vc
+
+# Install all required tools from bioconda channel
+conda install -c bioconda -c conda-forge bwa samtools bcftools freebayes bedtools
+
+# Check tool versions
+bwa 2>&1 | head -3  # redirect stderr to stdout and get first 3 lines
+samtools --version 
+bcftools --version 
+freebayes --version
+bedtools --version
+
+
+# Download data 
+mkdir assignment2
+cd assignment2 
+
+mkdir -p ~/assignment2/data
+mkdir -p ~/assignment2/track1_results
+
+cd data 
+
+# download data 
+# check link is to correct directory
+wget -R "index.html*" -r -nd -nH -np https://cgr.liv.ac.uk/454/acdarby/LIFE750/Life750_datasets/dataset_hsedave4/
+
+ls # check files 
+
+cd ..
